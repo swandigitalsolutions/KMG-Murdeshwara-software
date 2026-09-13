@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum BillType {
+  EWAY
+  NORMAL
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  code      String   @unique // "KMG" | "MURDESWAR"
+  name      String
+  address   String?
+  phone1    String?
+  phone2    String?
+  gstin     String?
+  createdAt DateTime @default(now())
+
+  users             User[]
+  stockRawMaterials StockRawMaterial[]
+  cuttingStones     CuttingStone[]
+  blocks            Block[]
+  vehicles          Vehicle[]
+  expenses          Expense[]
+  ledgerEntries     LedgerEntry[]
+  quotations        Quotation[]
+  bills             Bill[]
+  auditLogs         AuditLog[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id])
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  stockRawMaterials StockRawMaterial[]
+  cuttingStones     CuttingStone[]
+  blocks            Block[]
+  vehicles          Vehicle[]
+  expenses          Expense[]
+  ledgerEntries     LedgerEntry[]
+  quotations        Quotation[]
+  bills             Bill[]
+  auditLogs         AuditLog[]
+}
+
+model StockRawMaterial {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  date        DateTime
+  vehicleNo   String
+  measurement String
+  photoUrl    String?
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([companyId, deletedAt])
+}
+
+model CuttingStone {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  date        DateTime
+  partyName   String
+  measurement String
+  photoUrl    String?
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([companyId, deletedAt])
+}
+
+model Block {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  date        DateTime
+  vehicleNo   String
+  measurement String
+  photoUrl    String?
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([companyId, deletedAt])
+}
+
+model Vehicle {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  date        DateTime
+  vehicleNo   String
+  tonnage     Float
+  amount      Float
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([companyId, deletedAt])
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  date        DateTime
+  description String
+  category    String?
+  amount      Float
+  photoUrl    String?
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([companyId, deletedAt])
+}
+
+model LedgerEntry {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  customerName String
+  date         DateTime
+  description  String?
+  debit        Float     @default(0)
+  credit       Float     @default(0)
+  createdById  String
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  @@index([companyId, customerName, deletedAt])
+}
+
+model Quotation {
+  id          String          @id @default(cuid())
+  companyId   String
+  company     Company         @relation(fields: [companyId], references: [id])
+  quotationNo String
+  partyName   String
+  date        DateTime
+  total       Float           @default(0)
+  createdById String
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
+  items       QuotationItem[]
+
+  @@index([companyId, deletedAt])
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  particulars String
+  pcs         String?
+  qty         Float
+  rate        Float
+  amount      Float
+  sortOrder   Int       @default(0)
+}
+
+model Bill {
+  id           String    @id @default(cuid())
+  companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
+  billType     BillType
+  invoiceNo    String
+  date         DateTime
+  partyAddress String
+  partyGstin   String?
+  vehicleNo    String?
+  ewayBillNo   String?
+  subtotal     Float     @default(0)
+  cgstPercent  Float     @default(2.5)
+  sgstPercent  Float     @default(2.5)
+  igstPercent  Float     @default(0)
+  grandTotal   Float     @default(0)
+  createdById  String
+  createdBy    User      @relation(fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  items        BillItem[]
+
+  @@index([companyId, billType, deletedAt])
+}
+
+model BillItem {
+  id        String @id @default(cuid())
+  billId    String
+  bill      Bill   @relation(fields: [billId], references: [id], onDelete: Cascade)
+  particulars String
+  hsnCode   String?
+  qty       Float
+  rate      Float
+  amount    Float
+  sortOrder Int    @default(0)
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  companyId   String
+  company     Company     @relation(fields: [companyId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  action      AuditAction
+  module      String // e.g. "StockRawMaterial", "Bill", "Expense"
+  recordId    String
+  summary     String // human readable description of what changed
+  createdAt   DateTime    @default(now())
+
+  @@index([companyId, createdAt])
+}
